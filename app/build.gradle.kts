@@ -36,7 +36,7 @@ android {
         resValues = false
     }
 
-    // Configuration de compilation Kotlin
+    // Kotlin JVM target
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         kotlinOptions {
             jvmTarget = "11"
