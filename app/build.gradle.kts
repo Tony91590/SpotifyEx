@@ -3,8 +3,8 @@ import java.util.Random
 
 plugins {
     id("com.android.application")
-    kotlin("android")
-    kotlin("plugin.serialization")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 // 🔹 Git info
@@ -25,24 +25,17 @@ private val myPackageName = genPackageName(seed).also { println("Package name: $
 private fun genPackageName(seed: Long): String {
     val ALPHA = "abcdefghijklmnopqrstuvwxyz"
     val ALPHADOTS = "$ALPHA....."
-
     val random = Random(seed)
     val len = 5 + random.nextInt(15)
     val builder = StringBuilder(len)
-    var next: Char
     var prev = 0.toChar()
     for (i in 0 until len) {
-        next = if (prev == '.' || i == 0 || i == len - 1) {
-            ALPHA[random.nextInt(ALPHA.length)]
-        } else {
-            ALPHADOTS[random.nextInt(ALPHADOTS.length)]
-        }
+        val next = if (prev == '.' || i == 0 || i == len - 1) ALPHA[random.nextInt(ALPHA.length)] else ALPHADOTS[random.nextInt(ALPHADOTS.length)]
         builder.append(next)
         prev = next
     }
     if (!builder.contains('.')) {
-        val idx = random.nextInt(len - 2)
-        builder[idx + 1] = '.'
+        builder[random.nextInt(len - 2) + 1] = '.'
     }
     return builder.toString()
 }
@@ -60,7 +53,9 @@ android {
 
     flavorDimensions += "abi"
     productFlavors {
-        create("universal") { dimension = "abi" }
+        create("universal") {
+            dimension = "abi"
+        }
     }
 
     packaging.resources {
@@ -82,7 +77,9 @@ android {
         }
     }
 
-    lint { checkReleaseBuilds = false }
+    lint {
+        checkReleaseBuilds = false
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -109,7 +106,6 @@ tasks.withType<Test> {
 
 // 🔹 Dépendances
 dependencies {
-    implementation(group = "", name = "dexkit-android", ext = "aar")
     implementation("com.google.flatbuffers:flatbuffers-java:23.5.26")
     implementation("androidx.annotation:annotation:1.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.3")
