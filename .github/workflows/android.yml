@@ -3,30 +3,20 @@ name: Android CI
 on:
   push:
     branches: [ "ff" ]
-    tags-ignore:
-      - 'v*'          # Les releases taggées sont gérées par release.yml
+    tags-ignore: [ 'v*' ]
   pull_request:
     branches: [ "ff" ]
   schedule:
     - cron: '0 0 * * *'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
-
     steps:
-      # 🔹 Checkout du code et des submodules
       - uses: actions/checkout@v4
         with:
-          submodules: true
-          fetch-depth: 0        # nécessaire pour récupérer la date git
+          fetch-depth: 0
 
-      # 🔹 Installation JDK 17 et cache Gradle
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -34,54 +24,52 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # 🔹 Permission pour gradlew
-      - name: Grant execute permission for gradlew
+      - name: Grant gradlew execute permission
         run: chmod +x gradlew
 
-      # 🔹 Génération du seed pour applicationId
       - name: Generate package-name seed
         id: seed
         run: echo "NUMBER=$(shuf -i 1-10000 -n 1)" >> $GITHUB_OUTPUT
 
-      # 🔹 Nettoyage + compilation APK universel
-      - name: Clean and Build Release APK
-        run: ./gradlew clean :app:assembleUniversalRelease -PPACKAGE_NAME_SEED=${{ steps.seed.outputs.NUMBER }} --no-daemon --stacktrace
+      - name: Clean & Build APK
+        run: ./gradlew clean :app:assembleUniversalRelease -PPACKAGE_NAME_SEED=${{ steps.seed.outputs.NUMBER }} --stacktrace
 
-      # 🔹 Upload de l’APK et mapping ProGuard
-      - name: Upload APK artifact
+      - name: Locate APK
+        id: locate_apk
+        run: |
+          APK=$(find app/build/outputs/apk/ -name "*universal-release.apk" | head -n1)
+          if [[ ! -f "$APK" ]]; then
+            echo "APK not found!"
+            exit 1
+          fi
+          echo "APK=$APK" >> $GITHUB_OUTPUT
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp "${{ steps.locate_apk.outputs.APK }}" release/app.apk
+          # Copier mapping.txt seulement si existe
+          if [ -f "app/build/outputs/mapping/universalRelease/mapping.txt" ]; then
+            cp app/build/outputs/mapping/universalRelease/mapping.txt release/mapping.txt
+          fi
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rvxp-ci-release-apk
-          retention-days: 14
-          path: |
-            app/build/outputs/apk/universal/release/*.apk
-            app/build/outputs/mapping/universalRelease/mapping.txt
+          name: rvxp-release
+          path: release/
 
-      # 🔹 Publication automatique sur GitHub Release
       - name: Publish autobuild release
-        if: >
-          github.event_name != 'pull_request' &&
-          github.repository == github.event.repository.full_name
+        if: github.event_name != 'pull_request'
         run: |
-          # Variables git
-          GIT_DESCRIBE=$(git rev-parse --short HEAD)
-          GIT_COMMIT_DATE=$(git log -1 --format=%cd --date=format:%y%m%d)
-
-          # Nom unique de l’APK
-          APK_NAME="ReVancedXposedSpotify-${GIT_COMMIT_DATE}-${GIT_DESCRIBE}.apk"
-
-          # Copie de l’APK universel
-          cp app/build/outputs/apk/universal/release/app-universal-release.apk "${APK_NAME}"
-
-          # Supprime la release existante si elle existe
+          GIT_HASH=$(git rev-parse --short HEAD)
+          GIT_DATE=$(git log -1 --format=%cd --date=format:%y%m%d)
+          APK_NAME="ReVancedXposedSpotify-${GIT_DATE}-${GIT_HASH}.apk"
+          cp release/app.apk "${APK_NAME}"
           gh release delete autobuild --yes || true
-
-          # Création d’une nouvelle release autobuild
           gh release create autobuild "${APK_NAME}" \
             --prerelease \
-            --title "Nightly build ${GIT_COMMIT_DATE}" \
-            --notes "Automated nightly build from commit \`${GIT_DESCRIBE}\`.
-
-> Le package name et la signature de ce build changent chaque jour. Vous **n’êtes pas obligé** de réinstaller tous les jours."
+            --title "Nightly build ${GIT_DATE}" \
+            --notes "Automated nightly build from commit ${GIT_HASH}."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
