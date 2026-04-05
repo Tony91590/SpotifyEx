@@ -1,10 +1,10 @@
-// Fichier build.gradle.kts du projet (niveau top)
+// Top-level build file
 buildscript {
     repositories {
         google()
+        mavenCentral()                // ajouté pour résoudre toutes les dépendances
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
-        // jcenter() est obsolète et retiré
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.9.1")
@@ -15,9 +15,9 @@ buildscript {
 allprojects {
     repositories {
         google()
+        mavenCentral()                // ajouté
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
-        // jcenter() retiré pour éviter les warnings et futures erreurs
     }
 }
 
