@@ -25,14 +25,12 @@ private val myPackageName = genPackageName(seed).also { println("Package name: $
 private fun genPackageName(seed: Long): String {
     val ALPHA = "abcdefghijklmnopqrstuvwxyz"
     val ALPHADOTS = "$ALPHA....."
-
     val random = Random(seed)
     val len = 5 + random.nextInt(15)
     val builder = StringBuilder(len)
-    var next: Char
     var prev = 0.toChar()
     for (i in 0 until len) {
-        next = if (prev == '.' || i == 0 || i == len - 1) {
+        val next = if (prev == '.' || i == 0 || i == len - 1) {
             ALPHA[random.nextInt(ALPHA.length)]
         } else {
             ALPHADOTS[random.nextInt(ALPHADOTS.length)]
@@ -65,10 +63,18 @@ android {
         }
     }
 
+    // 🔹 APK universel multi-architecture
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     packaging.resources {
-        excludes.addAll(
-            arrayOf("META-INF/**", "**.bin")
-        )
+        excludes.addAll(arrayOf("META-INF/**", "**.bin"))
     }
 
     buildFeatures.buildConfig = true
