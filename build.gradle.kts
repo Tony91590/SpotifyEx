@@ -1,8 +1,7 @@
-// Top-level build file
 buildscript {
     repositories {
         google()
-        mavenCentral()                // ajouté pour résoudre toutes les dépendances
+        mavenCentral()                // essentiel pour toutes les dépendances AGP et Kotlin
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
     }
@@ -15,7 +14,7 @@ buildscript {
 allprojects {
     repositories {
         google()
-        mavenCentral()                // ajouté
+        mavenCentral()
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
     }
