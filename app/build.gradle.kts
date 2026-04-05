@@ -2,21 +2,23 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Random
 
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
-    alias(libs.plugins.jetbrains.kotlin.plugin.serialization)
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// 🔹 Git info
 val gitCommitHashProvider = providers.exec {
     commandLine("git", "rev-parse", "--short", "HEAD")
     workingDir = rootProject.rootDir
 }.standardOutput.asText!!
 
 val gitCommitDateProvider = providers.exec {
-    commandLine("git log -1 --format=%cd --date=format:%y%m%d".split(' '))
+    commandLine("git", "log -1 --format=%cd --date=format:%y%m%d".split(' '))
     workingDir = rootProject.rootDir
 }.standardOutput.asText!!
 
+// 🔹 Génération dynamique du package name
 private val seed = (project.properties["PACKAGE_NAME_SEED"] as? String ?: "0").toLong().also { println("Seed for package name: $it") }
 private val myPackageName = genPackageName(seed).also { println("Package name: $it") }
 
@@ -39,13 +41,13 @@ private fun genPackageName(seed: Long): String {
         prev = next
     }
     if (!builder.contains('.')) {
-        // Pick a random index and set it as dot
         val idx = random.nextInt(len - 2)
         builder[idx + 1] = '.'
     }
     return builder.toString()
 }
 
+// 🔹 Android
 android {
     namespace = "io.github.chsbuffer.revancedxposed"
 
@@ -55,20 +57,22 @@ android {
         versionName = gitCommitDateProvider.get().trim()
         buildConfigField("String", "COMMIT_HASH", "\"${gitCommitHashProvider.get().trim()}\"")
     }
+
     flavorDimensions += "abi"
     productFlavors {
         create("universal") {
             dimension = "abi"
         }
     }
+
     packaging.resources {
         excludes.addAll(
-            arrayOf(
-                "META-INF/**", "**.bin"
-            )
+            arrayOf("META-INF/**", "**.bin")
         )
     }
+
     buildFeatures.buildConfig = true
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -77,20 +81,22 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
     lint {
         checkReleaseBuilds = false
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+
+// 🔹 Kotlin
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll(
@@ -101,23 +107,37 @@ kotlin {
         jvmTarget = JvmTarget.JVM_17
     }
 }
+
+// 🔹 Tests
 tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+// 🔹 Dépendances
 dependencies {
-//    implementation(libs.dexkit)
+    // Dexkit
     implementation(group = "", name = "dexkit-android", ext = "aar")
-    implementation("com.google.flatbuffers:flatbuffers-java:23.5.26") // dexkit dependency
-    implementation(libs.annotation)
-    implementation(libs.kotlinx.serialization.protobuf)
+
+    // Flatbuffers
+    implementation("com.google.flatbuffers:flatbuffers-java:23.5.26")
+
+    // AndroidX Annotation
+    implementation("androidx.annotation:annotation:1.7.1")
+
+    // Kotlin Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.3")
+
+    // Test
     testImplementation(kotlin("test-junit5"))
-    testImplementation(libs.junit.jupiter.params)
-    testImplementation(libs.jadx.core)
-    testImplementation(libs.slf4j.simple)
-    compileOnly(libs.xposed)
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
+    testImplementation("io.github.skylot:jadx-core:1.4.7")
+    testImplementation("org.slf4j:slf4j-simple:2.0.9")
+
+    // Xposed
+    compileOnly("de.robv.android.xposed:api:82")
 }
 
+// 🔹 Android Components
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         variant.packaging.resources.excludes.add("kotlin/**")
