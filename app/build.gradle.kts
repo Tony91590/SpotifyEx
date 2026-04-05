@@ -1,49 +1,69 @@
-@file:Suppress("UnstableApiUsage")
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Random
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// 🔹 Git info
+val gitCommitHashProvider = providers.exec {
+    commandLine("git", "rev-parse", "--short", "HEAD")
+    workingDir = rootProject.rootDir
+}.standardOutput.asText!!
+
+val gitCommitDateProvider = providers.exec {
+    commandLine("git", "log -1 --format=%cd --date=format:%y%m%d".split(' '))
+    workingDir = rootProject.rootDir
+}.standardOutput.asText!!
+
+// 🔹 Génération dynamique du package name
+private val seed = (project.properties["PACKAGE_NAME_SEED"] as? String ?: "0").toLong().also { println("Seed for package name: $it") }
+private val myPackageName = genPackageName(seed).also { println("Package name: $it") }
+
+private fun genPackageName(seed: Long): String {
+    val ALPHA = "abcdefghijklmnopqrstuvwxyz"
+    val ALPHADOTS = "$ALPHA....."
+    val random = Random(seed)
+    val len = 5 + random.nextInt(15)
+    val builder = StringBuilder(len)
+    var prev = 0.toChar()
+    for (i in 0 until len) {
+        val next = if (prev == '.' || i == 0 || i == len - 1) {
+            ALPHA[random.nextInt(ALPHA.length)]
+        } else {
+            ALPHADOTS[random.nextInt(ALPHADOTS.length)]
+        }
+        builder.append(next)
+        prev = next
+    }
+    if (!builder.contains('.')) {
+        val idx = random.nextInt(len - 2)
+        builder[idx + 1] = '.'
+    }
+    return builder.toString()
+}
+
+// 🔹 Android
 android {
-    namespace = "io.github.cloudburst.spotifyex"
-    compileSdk = 35
+    namespace = "io.github.chsbuffer.revancedxposed"
 
     defaultConfig {
-        applicationId = "io.github.cloudburst.spotifyex"
-        minSdk = 27
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.2"
-        buildConfigField("long", "BUILD_DATE", "${System.currentTimeMillis()}")
+        applicationId = myPackageName
+        versionCode = 33
+        versionName = gitCommitDateProvider.get().trim()
+        buildConfigField("String", "COMMIT_HASH", "\"${gitCommitHashProvider.get().trim()}\"")
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+    flavorDimensions += "abi"
+    productFlavors {
+        create("universal") {
+            dimension = "abi"
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    buildFeatures {
-        buildConfig = true
-        resValues = false
-    }
-
-    // Kotlin JVM target
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "11"
-        }
-    }
-
-    // --- Ajout pour APK universel ---
+    // 🔹 APK universel multi-architecture
     splits {
         abi {
             isEnable = true
@@ -52,9 +72,80 @@ android {
             isUniversalApk = true
         }
     }
+
+    packaging.resources {
+        excludes.addAll(arrayOf("META-INF/**", "**.bin"))
+    }
+
+    buildFeatures.buildConfig = true
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "RVX Spotify (Test)")
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }
 
+// 🔹 Kotlin
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            "-Xno-param-assertions",
+            "-Xno-receiver-assertions",
+            "-Xno-call-assertions"
+        )
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
+
+// 🔹 Tests
+tasks.withType<Test> {
+    useJUnitPlatform()
+}
+
+// 🔹 Dépendances
 dependencies {
+    // Dexkit
+    implementation(group = "", name = "dexkit-android", ext = "aar")
+
+    // Flatbuffers
+    implementation("com.google.flatbuffers:flatbuffers-java:23.5.26")
+
+    // AndroidX Annotation
+    implementation("androidx.annotation:annotation:1.7.1")
+
+    // Kotlin Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.3")
+
+    // Test
+    testImplementation(kotlin("test-junit5"))
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
+    testImplementation("io.github.skylot:jadx-core:1.4.7")
+    testImplementation("org.slf4j:slf4j-simple:2.0.9")
+
+    // Xposed
     compileOnly("de.robv.android.xposed:api:82")
-    implementation("org.luckypray:dexkit:2.0.0-rc7")
+}
+
+// 🔹 Android Components
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        variant.packaging.resources.excludes.add("kotlin/**")
+    }
 }
