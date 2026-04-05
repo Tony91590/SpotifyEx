@@ -24,14 +24,5 @@ dependencyResolutionManagement {
     }
 }
 
-plugins {
-    id("com.android.settings") version ("8.13.0")
-}
-
-android {
-    compileSdk = 36
-    minSdk = 27
-}
-
 rootProject.name = "RVX Spotify"
 include(":app")
