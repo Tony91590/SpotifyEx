@@ -19,8 +19,8 @@ val gitCommitDateProvider = providers.exec {
 }.standardOutput.asText!!
 
 // 🔹 Génération dynamique du package name
-private val seed = (project.properties["PACKAGE_NAME_SEED"] as? String ?: "0").toLong().also { println("Seed for package name: $it") }
-private val myPackageName = genPackageName(seed).also { println("Package name: $it") }
+private val seed = (project.properties["PACKAGE_NAME_SEED"] as? String ?: "0").toLong()
+private val myPackageName = genPackageName(seed)
 
 private fun genPackageName(seed: Long): String {
     val ALPHA = "abcdefghijklmnopqrstuvwxyz"
@@ -53,9 +53,7 @@ android {
 
     flavorDimensions += "abi"
     productFlavors {
-        create("universal") {
-            dimension = "abi"
-        }
+        create("universal") { dimension = "abi" }
     }
 
     packaging.resources {
@@ -77,9 +75,7 @@ android {
         }
     }
 
-    lint {
-        checkReleaseBuilds = false
-    }
+    lint { checkReleaseBuilds = false }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
