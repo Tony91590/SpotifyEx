@@ -3,8 +3,8 @@ import java.util.Random
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.serialization")
+    kotlin("android")
+    kotlin("plugin.serialization")
 }
 
 // 🔹 Git info
@@ -14,22 +14,23 @@ val gitCommitHashProvider = providers.exec {
 }.standardOutput.asText!!
 
 val gitCommitDateProvider = providers.exec {
-    commandLine("git", "log -1 --format=%cd --date=format:%y%m%d".split(' '))
+    commandLine("git", "log", "-1", "--format=%cd", "--date=format:%y%m%d")
     workingDir = rootProject.rootDir
 }.standardOutput.asText!!
 
 // 🔹 Génération dynamique du package name
-private val seed = (project.properties["PACKAGE_NAME_SEED"] as? String ?: "0").toLong().also { println("Seed for package name: $it") }
-private val myPackageName = genPackageName(seed).also { println("Package name: $it") }
+private val seed = (project.properties["PACKAGE_NAME_SEED"] as? String ?: "0").toLong()
+private val myPackageName = genPackageName(seed)
 
 private fun genPackageName(seed: Long): String {
     val ALPHA = "abcdefghijklmnopqrstuvwxyz"
     val ALPHADOTS = "$ALPHA....."
+
     val random = Random(seed)
     val len = 5 + random.nextInt(15)
     val builder = StringBuilder(len)
     var prev = 0.toChar()
-    for (i in 0 until len) {
+    repeat(len) { i ->
         val next = if (prev == '.' || i == 0 || i == len - 1) {
             ALPHA[random.nextInt(ALPHA.length)]
         } else {
@@ -45,12 +46,15 @@ private fun genPackageName(seed: Long): String {
     return builder.toString()
 }
 
-// 🔹 Android
+// 🔹 Android configuration
 android {
     namespace = "io.github.chsbuffer.revancedxposed"
 
+    compileSdk = 35
     defaultConfig {
         applicationId = myPackageName
+        minSdk = 27
+        targetSdk = 34
         versionCode = 33
         versionName = gitCommitDateProvider.get().trim()
         buildConfigField("String", "COMMIT_HASH", "\"${gitCommitHashProvider.get().trim()}\"")
@@ -58,26 +62,8 @@ android {
 
     flavorDimensions += "abi"
     productFlavors {
-        create("universal") {
-            dimension = "abi"
-        }
+        create("universal") { dimension = "abi" }
     }
-
-    // 🔹 APK universel multi-architecture
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = true
-        }
-    }
-
-    packaging.resources {
-        excludes.addAll(arrayOf("META-INF/**", "**.bin"))
-    }
-
-    buildFeatures.buildConfig = true
 
     buildTypes {
         debug {
@@ -92,13 +78,21 @@ android {
         }
     }
 
-    lint {
-        checkReleaseBuilds = false
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    packaging {
+        resources.excludes.addAll(listOf("META-INF/**", "**.bin"))
+    }
+
+    lint {
+        checkReleaseBuilds = false
     }
 }
 
@@ -114,38 +108,10 @@ kotlin {
     }
 }
 
-// 🔹 Tests
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
-
-// 🔹 Dépendances
+// 🔹 Dependencies
 dependencies {
-    // Dexkit
-    implementation(group = "", name = "dexkit-android", ext = "aar")
-
-    // Flatbuffers
     implementation("com.google.flatbuffers:flatbuffers-java:23.5.26")
-
-    // AndroidX Annotation
     implementation("androidx.annotation:annotation:1.7.1")
-
-    // Kotlin Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.3")
-
-    // Test
-    testImplementation(kotlin("test-junit5"))
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
-    testImplementation("io.github.skylot:jadx-core:1.4.7")
-    testImplementation("org.slf4j:slf4j-simple:2.0.9")
-
-    // Xposed
     compileOnly("de.robv.android.xposed:api:82")
-}
-
-// 🔹 Android Components
-androidComponents {
-    onVariants(selector().withBuildType("release")) { variant ->
-        variant.packaging.resources.excludes.add("kotlin/**")
-    }
 }
