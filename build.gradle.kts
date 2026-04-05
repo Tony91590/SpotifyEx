@@ -1,11 +1,10 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// Fichier build.gradle.kts du projet (niveau top)
 buildscript {
     repositories {
         google()
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
-        //noinspection JcenterRepositoryObsolete
-        jcenter()
+        // jcenter() est obsolète et retiré
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.9.1")
@@ -18,8 +17,7 @@ allprojects {
         google()
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
-        //noinspection JcenterRepositoryObsolete
-        jcenter()
+        // jcenter() retiré pour éviter les warnings et futures erreurs
     }
 }
 
