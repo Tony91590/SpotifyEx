@@ -42,6 +42,7 @@ private fun genPackageName(seed: Long): String {
 
 // 🔹 Android
 android {
+android {
     namespace = "io.github.chsbuffer.revancedxposed"
 
     defaultConfig {
@@ -57,7 +58,7 @@ android {
     }
 
     packaging.resources {
-        excludes.addAll("META-INF/**", "**.bin")
+        excludes.addAll(listOf("META-INF/**", "**.bin"))  // ✅ correction ici
     }
 
     buildFeatures.buildConfig = true
@@ -82,7 +83,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
-
 // 🔹 Kotlin
 kotlin {
     compilerOptions {
