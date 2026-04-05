@@ -1,19 +1,19 @@
-// Root build.gradle.kts
-
 plugins {
-    // Kotlin DSL plugins, version définie ici pour tous les modules
-    kotlin("android") version "1.9.20" apply false
-    kotlin("plugin.serialization") version "1.9.20" apply false
+    // Android Gradle Plugin via pluginManagement version
+    id("com.android.application") version "8.1.1" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.10" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10" apply false
 }
 
-allprojects {
+pluginManagement {
     repositories {
-        google()       // Nécessaire pour les plugins Android
+        gradlePluginPortal()
+        google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
     }
 }
 
-tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
+repositories {
+    google()
+    mavenCentral()
 }
