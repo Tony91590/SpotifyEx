@@ -4,8 +4,7 @@ buildscript {
         google()
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
-        //noinspection JcenterRepositoryObsolete
-        jcenter()
+        mavenCentral() // ✅ remplacé
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.9.1")
@@ -18,8 +17,7 @@ allprojects {
         google()
         maven("https://jitpack.io")
         maven("https://api.xposed.info")
-        //noinspection JcenterRepositoryObsolete
-        jcenter()
+        mavenCentral() // ✅ remplacé
     }
 }
 
