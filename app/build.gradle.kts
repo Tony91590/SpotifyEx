@@ -18,7 +18,6 @@ android {
         buildConfigField("long", "BUILD_DATE", "${System.currentTimeMillis()}")
     }
 
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -26,17 +25,31 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         buildConfig = true
         resValues = false
     }
+
+    // Configuration de compilation Kotlin
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         kotlinOptions {
             jvmTarget = "11"
+        }
+    }
+
+    // --- Ajout pour APK universel ---
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
         }
     }
 }
