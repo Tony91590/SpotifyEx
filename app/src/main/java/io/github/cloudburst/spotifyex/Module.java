@@ -23,7 +23,7 @@ public final class Module implements IXposedHookLoadPackage {
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         if (!lpparam.packageName.equals("com.spotify.music")) return;
 
-        Log.d(TAG, "Module build date: " + DateFormat.format("yyyy-MM-dd HH:mm:ss", new Date(BuildConfig.BUILD_DATE)));
+        Log.d(TAG, "Module loaded");
 
         var cl = lpparam.classLoader;
         System.loadLibrary("dexkit");
